@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="color-scheme" content="dark" />
+  <title>Better Youtube — Options</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 14px;
+      background: #0f0f0f;
+      color: #fff;
+      padding: 32px;
+      max-width: 600px;
+    }
+
+    #dev-video-wrap {
+      display: none;
+    }
+
+    /* Only show on desktop — wide enough to have room beside the content panel */
+    @media (min-width: 1000px) {
+      body {
+        max-width: none;
+        display: flex;
+        align-items: flex-start;
+        gap: 40px;
+      }
+      #page-content {
+        width: 600px;
+        flex-shrink: 0;
+      }
+      #dev-video-wrap {
+        flex-shrink: 0;
+        width: 480px;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 8px;
+        margin-left: auto;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+      }
+      #dev-video-wrap.visible { display: block; }
+      #dev-video-wrap video { width: 100%; display: block; }
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #ff4444;
+      margin-bottom: 24px;
+      letter-spacing: 0.03em;
+    }
+
+    .section {
+      border: 1px solid #2a2a2a;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .section-header {
+      background: #1a1a1a;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .option-row {
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #1c1c1c;
+    }
+
+    .option-label { font-size: 13px; color: #fff; }
+    .option-desc  { font-size: 11px; color: #fff; margin-top: 3px; }
+
+    /* Toggle */
+    .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; margin-left: 16px; }
+    .toggle input { display: none; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: #2a2a2a; border-radius: 11px; cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-track::after {
+      content: ''; position: absolute;
+      width: 16px; height: 16px; background: #555; border-radius: 50%;
+      top: 3px; left: 3px; transition: transform 0.2s, background 0.2s;
+    }
+    .toggle input:checked + .toggle-track { background: #ff4444; }
+    .toggle input:checked + .toggle-track::after { transform: translateX(18px); background: #fff; }
+
+    /* Watch list panel */
+    .expand-btn {
+      width: 100%;
+      padding: 11px 14px;
+      background: #1a1a1a;
+      border: none;
+      border-top: 1px solid #1c1c1c;
+      color: #fff;
+      font-size: 12px;
+      font-family: inherit;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.15s;
+    }
+    .expand-btn:hover { background: #222; }
+    .expand-arrow { font-size: 10px; color: #fff; transition: transform 0.2s; }
+    .expand-arrow.open { transform: rotate(180deg); }
+
+    #watch-list-panel { display: none; border-top: 1px solid #1c1c1c; }
+
+    .watch-list-inner {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .watch-list-inner::-webkit-scrollbar { width: 4px; }
+    .watch-list-inner::-webkit-scrollbar-track { background: #0f0f0f; }
+    .watch-list-inner::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    .cat-header {
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #ff4444;
+      background: #111;
+      border-bottom: 1px solid #1c1c1c;
+      letter-spacing: 0.05em;
+    }
+
+    .entry-row {
+      display: flex;
+      align-items: center;
+      padding: 5px 14px;
+      border-bottom: 1px solid #1a1a1a;
+      gap: 10px;
+    }
+    .entry-row:hover { background: #141414; }
+
+    .remove-btn {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      border: 1px solid #cc3333;
+      border-radius: 3px;
+      background: #1a0a0a;
+      color: #cc3333;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+    .remove-btn:hover { background: #cc3333; color: #fff; }
+
+    .entry-text {
+      font-size: 12px;
+      color: #fff;
+      word-break: break-word;
+      flex: 1;
+    }
+    .entry-channel { color: #4a9; font-size: 11px; }
+
+    .list-empty {
+      padding: 16px 14px;
+      color: #fff;
+      font-style: italic;
+      font-size: 12px;
+    }
+
+    /* Disable WL modal */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 9998;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 60px;
+    }
+    #modal-overlay.visible { display: flex; }
+    #modal-box {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      width: 360px;
+      padding: 22px 20px 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+      transform: translateY(-30px);
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.34,1.4,0.64,1), opacity 0.25s ease;
+    }
+    #modal-overlay.visible #modal-box {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    #modal-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    #modal-sub {
+      font-size: 12px;
+      color: #fff;
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+    .modal-btn-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .modal-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #333;
+      background: #2a2a2a;
+      color: #fff;
+      transition: background 0.15s;
+    }
+    .modal-btn:hover { background: #333; }
+    .modal-btn-delete {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      background: #cc3333;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .modal-btn-delete:hover { background: #ff4444; }
+
+    #toast {
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a1a;
+      border-radius: 6px;
+      padding: 12px 20px;
+      min-width: 260px;
+      max-width: 480px;
+      text-align: center;
+      z-index: 9999;
+      transition: top 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      pointer-events: none;
+    }
+    #toast.visible { top: 24px; }
+    #toast.success { border: 1px solid #4a9; }
+    #toast.error   { border: 1px solid #cc3333; }
+    #toast-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+    #toast.success #toast-title { color: #4a9; }
+    #toast.error   #toast-title { color: #cc3333; }
+    #toast-sub {
+      font-size: 11px;
+      color: #fff;
+    }
+
+    /* Upload section */
+    .upload-zone {
+      margin: 16px;
+      border: 2px dashed #444;
+      border-radius: 6px;
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #111;
+    }
+    .upload-zone:hover { border-color: #e67e22; background: #151515; }
+    .upload-zone-icon {
+      font-size: 28px;
+      line-height: 1;
+      opacity: 0.6;
+    }
+    .upload-zone-label {
+      font-size: 12px;
+      color: #fff;
+      text-align: center;
+    }
+    .upload-file-btn {
+      padding: 9px 28px;
+      background: #e67e22;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+      letter-spacing: 0.02em;
+    }
+    .upload-file-btn:hover { background: #cf6d17; }
+
+      margin-top: 16px; min-height: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div id="page-content">
+  <h1>Better Youtube — Options</h1>
+
+  <div class="section">
+    <div class="section-header">Watch List System</div>
+    <div class="option-row">
+      <div>
+        <div class="option-label">Disable_Watch_List_System</div>
+        <div class="option-desc">Disables all list-based tracking and hiding. Removes Watch History from popup.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-wl-disabled" />
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+  </div>
+
+  <!-- Disable WL modal -->
+  <div id="modal-overlay">
+    <div id="modal-box">
+      <div id="modal-title">Disable Watch History System?</div>
+      <div id="modal-sub">Would you like to permanently delete your stored data as well?</div>
+      <div class="modal-btn-row">
+        <button class="modal-btn" id="modal-btn-disable">Just Disable History</button>
+        <button class="modal-btn" id="modal-btn-cancel">Cancel</button>
+      </div>
+      <button class="modal-btn-delete" id="modal-btn-delete">DELETE HISTORY</button>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast">
+    <div id="toast-title"></div>
+    <div id="toast-sub"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header" style="color:#ff4444;">Word Blacklist</div>
+    <div class="option-row">
+      <div>
+        <div class="option-label">Enable Word Blacklist</div>
+        <div class="option-desc">Hides videos whose titles contain any listed word. Not added to watch history.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-blacklist" />
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+    <div style="padding: 10px 14px; border-top: 1px solid #1c1c1c;">
+      <textarea id="blacklist-words-options"
+        placeholder="MineCraft, Roblox"
+        style="width:100%; min-height:80px; padding:8px 10px; background:#0f0f0f;
+        border:1px solid #2a2a2a; border-radius:3px; color:#fff; font-size:12px;
+        font-family:inherit; resize:vertical; outline:none; line-height:1.5;">MineCraft, Roblox</textarea>
+      <div style="font-size:11px; color:#fff; margin-top:5px;">Comma-separated. Case insensitive.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Import / Export Watch History</div>
+    <div class="upload-zone" id="upload-zone">
+      <div class="upload-zone-icon">📂</div>
+      <div class="upload-zone-label">Import a previously exported Watched_Videos.txt<br>to merge with your current history</div>
+      <button class="upload-file-btn" id="btn-upload">Upload File</button>
+      <input type="file" id="file-input" accept=".txt" style="display:none;" />
+    </div>
+    <div style="padding: 12px 16px; border-top: 1px solid #1c1c1c;">
+      <button id="btn-export-options" style="
+        width: 100%; padding: 9px; border: none; border-radius: 4px;
+        background: #ff4444; color: #fff; font-size: 12px; font-weight: 600;
+        font-family: inherit; cursor: pointer; transition: background 0.15s;
+        letter-spacing: 0.02em;">Export Watch History</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; color:#ff4444;">
+      <span>Watch History</span>
+      <span id="wh-count" style="font-weight:400; color:#fff; font-size:11px;">0 entries</span>
+    </div>
+    <button class="expand-btn" id="expand-watch-list">
+      <span>Manage_Watch_History</span>
+      <span class="expand-arrow" id="expand-arrow">▼</span>
+    </button>
+    <div id="watch-list-panel">
+      <div style="padding: 8px 14px; border-bottom: 1px solid #1c1c1c;">
+        <input type="text" id="watch-list-search" placeholder="Search titles..."
+          style="width:100%; padding:5px 8px; background:#1a1a1a; border:1px solid #2a2a2a;
+          border-radius:3px; color:#fff; font-size:12px; font-family:inherit; outline:none;" />
+      </div>
+      <div class="watch-list-inner" id="watch-list-inner">
+        <div class="list-empty">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Developer</div>
+    <div class="option-row">
+      <div>
+        <div class="option-label">Show_Developer_Tools</div>
+        <div class="option-desc">Reveals the developer section in the extension popup.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-dev" />
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+  </div>
+
+  <div id="saved-msg"></div>
+
+  </div><!-- #page-content -->
+
+  <div id="dev-video-wrap">
+    <video id="dev-video" src="https://i.imgur.com/AivdC6q.mp4" loop controls></video>
+  </div>
+
+  <script src="list_manager.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
