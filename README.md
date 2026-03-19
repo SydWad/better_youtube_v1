@@ -36,7 +36,7 @@ All data is stored locally on your device using `chrome.storage.local`. No data 
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT — see [LICENSE](https://opensource.org/license/mit)
 
 ## Disclaimer
 
