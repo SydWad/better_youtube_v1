@@ -18,9 +18,10 @@ var extToggleLabel   = document.getElementById('ext-toggle-label');
 var togglePW         = document.getElementById('toggle-pw');
 var sliderPW         = document.getElementById('slider-pw');
 var sliderPct        = document.getElementById('slider-pct');
-var toggleLength     = document.getElementById('toggle-length');
+var toggleLength     = null; // removed — blank=∞ replaces toggle
 var lengthMin        = document.getElementById('length-min');
 var lengthMax        = document.getElementById('length-max');
+var viewCountMin     = document.getElementById('viewcount-min');
 var toggleShorts     = document.getElementById('toggle-shorts');
 var togglePlaylists  = document.getElementById('toggle-playlists');
 var toggleMembers    = document.getElementById('toggle-members');
@@ -121,9 +122,10 @@ function loadSettings() {
     sliderPW.value        = typeof s.pw_threshold === 'number' ? s.pw_threshold : 50;
     sliderPct.textContent = sliderPW.value + '%';
 
-    toggleLength.checked = !!s.length_enabled;
-    lengthMin.value = s.length_min || '0:00';
-    lengthMax.value = s.length_max || '2:00';
+    lengthMin.value = s.length_min !== undefined ? s.length_min : '';
+    lengthMax.value = s.length_max !== undefined ? s.length_max : '';
+
+    viewCountMin.value = s.view_count_min ? formatViewCount(s.view_count_min) : '';
 
     toggleShorts.checked    = !!s.hide_shorts;
     togglePlaylists.checked = !!s.hide_playlists;
@@ -151,9 +153,11 @@ function saveSettings() {
 
     s.pw_enabled        = togglePW.checked;
     s.pw_threshold      = parseInt(sliderPW.value);
-    s.length_enabled    = toggleLength.checked;
     s.length_min        = lengthMin.value.trim() || '';
     s.length_max        = lengthMax.value.trim() || '';
+    s.length_enabled    = !!(s.length_min || s.length_max);
+    s.view_count_min    = parseViewCountInput(viewCountMin.value);
+    s.view_count_enabled = s.view_count_min > 0;
     s.hide_shorts       = toggleShorts.checked;
     s.hide_playlists    = togglePlaylists.checked;
     s.hide_members      = toggleMembers.checked;
@@ -176,18 +180,46 @@ function saveSettings() {
 
 function ythFormatDuration(val) {
   var raw = val.replace(/[^0-9]/g, '');
-  if (raw === '' || raw === '0') return '0:00';
+  // Strip leading zeros
+  raw = raw.replace(/^0+/, '') || '';
+  if (raw === '') return ''; // blank = infinite
+  // Cap to 4 significant digits (max 99:59)
+  if (raw.length > 4) raw = raw.slice(-4);
   if (raw.length === 1) return '0:0' + raw;
   if (raw.length === 2) return '0:' + raw;
   if (raw.length === 3) return raw[0] + ':' + raw.slice(1);
-  if (raw.length === 4) return raw.slice(0, 2) + ':' + raw.slice(2);
-  return '99:59';
+  return raw.slice(0, 2) + ':' + raw.slice(2);
 }
 
 function ythAutoFormat(input) {
-  input.value = ythFormatDuration(input.value);
+  var formatted = ythFormatDuration(input.value);
+  input.value = formatted;
   saveSettings();
 }
+
+// ─── View count format / parse ────────────────────────────────────────────────
+
+function parseViewCountInput(val) {
+  if (!val || val.trim() === '') return 0;
+  // Strip commas and whitespace, parse as integer
+  var n = parseInt(val.replace(/[^0-9]/g, ''), 10);
+  return isNaN(n) ? 0 : n;
+}
+
+function formatViewCount(n) {
+  if (!n || n === 0) return '';
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+viewCountMin.addEventListener('blur', function() {
+  var n = parseViewCountInput(viewCountMin.value);
+  viewCountMin.value = n > 0 ? formatViewCount(n) : '';
+  saveSettings();
+});
+viewCountMin.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { viewCountMin.blur(); }
+});
+
 
 lengthMin.addEventListener('blur',    function() { ythAutoFormat(lengthMin); });
 lengthMax.addEventListener('blur',    function() { ythAutoFormat(lengthMax); });
@@ -200,7 +232,7 @@ sliderPW.addEventListener('input', function() { sliderPct.textContent = sliderPW
 
 // ─── Attach save listeners ────────────────────────────────────────────────────
 
-[togglePW, toggleLength, toggleShorts, togglePlaylists, toggleMembers, toggleLive,
+[togglePW, toggleShorts, togglePlaylists, toggleMembers, toggleLive,
  filterHome, filterSubs, filterChannel, filterSearch, filterSidebar,
  toggleRWH, toggleDebug, toggleBlacklist].forEach(function(el) {
   el.addEventListener('change', saveSettings);

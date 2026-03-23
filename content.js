@@ -25,8 +25,8 @@ var ythSettings = {
   pw_enabled:        false,
   pw_threshold:      50,
   length_enabled:    false,
-  length_min:        '0:00',
-  length_max:        '0:20',
+  length_min:        '',
+  length_max:        '',
   hide_shorts:       false,
   hide_playlists:    false,
   hide_members:      false,
@@ -40,7 +40,9 @@ var ythSettings = {
   wl_disabled:       false,
   debug_enabled:     false,
   blacklist_enabled: false,
-  blacklist_words:   'MineCraft, Roblox'
+  blacklist_words:   'MineCraft, Roblox',
+  view_count_enabled: false,
+  view_count_min:     0
 };
 
 // ─── Page type detection ──────────────────────────────────────────────────────
@@ -113,7 +115,50 @@ function ythExtractDuration(renderer) {
   return null;
 }
 
-// ─── Storage functions (inlined) ─────────────────────────────────────────────
+// Parse YouTube's view count format: "123", "1.2K", "45.6M", "1.2B" → number
+function ythParseViewCount(str) {
+  if (!str) return null;
+  str = str.trim().replace(/,/g, '');
+  if (!str) return null;
+  var multipliers = { 'k': 1e3, 'm': 1e6, 'b': 1e9 };
+  var last = str[str.length - 1].toLowerCase();
+  if (multipliers[last]) {
+    return parseFloat(str.slice(0, -1)) * multipliers[last];
+  }
+  var n = parseFloat(str);
+  return isNaN(n) ? null : n;
+}
+
+function ythExtractViewCount(renderer) {
+  // View count is a metadata-text span that follows a leading-icon span
+  // (the play-button icon svg). We find all leading-icon + value pairs.
+  var rows = renderer.querySelectorAll('.yt-content-metadata-view-model__metadata-row');
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var icons = row.querySelectorAll('.yt-content-metadata-view-model__leading-icon');
+    for (var j = 0; j < icons.length; j++) {
+      // The span immediately after a leading-icon contains the view count
+      var next = icons[j].nextElementSibling;
+      while (next) {
+        if (next.classList && next.classList.contains('yt-content-metadata-view-model__metadata-text')) {
+          var txt = next.textContent.trim();
+          // Must look like a number with optional K/M/B suffix, no other words
+          if (/^[\d,.]+[KMBkmb]?$/.test(txt)) {
+            var count = ythParseViewCount(txt);
+            if (count !== null) return count;
+          }
+          break;
+        }
+        // Skip delimiter spans
+        if (!next.classList.contains('yt-content-metadata-view-model__delimiter')) break;
+        next = next.nextElementSibling;
+      }
+    }
+  }
+  return null;
+}
+
+
 
 function ythReadList(callback) {
   chrome.storage.local.get([YT_HIDER_NOT_INTERESTED], function(result) {
@@ -514,6 +559,15 @@ function ythProcessRenderer(renderer, list) {
     }
   }
 
+  // View count filter
+  if (ythSettings.view_count_enabled && ythSettings.view_count_min > 0) {
+    var views = ythExtractViewCount(renderer);
+    if (views !== null && views < ythSettings.view_count_min) {
+      ythLog('[YT Hider] hiding by view count (' + views + '):', ythExtractTitle(renderer));
+      ythHide(renderer, 'views'); return;
+    }
+  }
+
   // Watch history list
   if (ythSettings.rwh_enabled && !ythSettings.wl_disabled && list) {
     var title   = ythExtractTitle(renderer);
@@ -884,3 +938,26 @@ chrome.storage.local.get([YT_HIDER_SETTINGS_KEY], function(result) {
 });
 
 ythLog('[YT Hider] content script loaded, page:', ythGetPageType());
+
+// ─── Watch page auto-save ─────────────────────────────────────────────────────
+// If the user watches a video for 10+ seconds, save it to the watch history.
+
+if (ythGetPageType() === 'sidebar' && !ythSettings.wl_disabled) {
+  setTimeout(function() {
+    // Extract title from the watch page — primary video title element
+    var titleEl = document.querySelector('h1.ytd-video-primary-info-renderer yt-formatted-string') ||
+                  document.querySelector('h1.style-scope.ytd-watch-metadata yt-formatted-string') ||
+                  document.querySelector('#title h1 yt-formatted-string');
+    var title = titleEl ? titleEl.textContent.trim() : null;
+
+    // Extract channel name
+    var channelEl = document.querySelector('#channel-name a, ytd-channel-name a, #owner #channel-name yt-formatted-string');
+    var channel = channelEl ? channelEl.textContent.trim() : null;
+
+    if (title) {
+      var entry = channel ? (title + CHANNEL_SEP + channel) : title;
+      ythLog('[YT Hider] auto-saving watch page video:', entry);
+      ythSaveEntry(entry);
+    }
+  }, 10000);
+}

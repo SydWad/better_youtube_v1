@@ -188,13 +188,21 @@
 
   <div class="row no-bottom">
     <span class="row-label">Filter Based On Length</span>
-    <label class="toggle"><input type="checkbox" id="toggle-length" /><div class="toggle-track"></div></label>
   </div>
   <div class="length-row">
-    <input class="length-input" id="length-min" type="text" placeholder="0:00" value="0:00" maxlength="5" />
+    <input class="length-input" id="length-min" type="text" placeholder="∞" value="" maxlength="5" />
     <span class="length-dash">—</span>
-    <input class="length-input" id="length-max" type="text" placeholder="∞" value="0:20" maxlength="5" />
+    <input class="length-input" id="length-max" type="text" placeholder="∞" value="" maxlength="5" />
     <span class="length-inf">H:MM&nbsp;&nbsp;(blank&nbsp;=&nbsp;∞)</span>
+  </div>
+
+  <div class="row no-bottom">
+    <span class="row-label">Minimum View Count</span>
+  </div>
+  <div class="length-row">
+    <input class="length-input" id="viewcount-min" type="text" placeholder="blank = off"
+      style="width:120px; text-align:left;" maxlength="15" />
+    <span class="length-inf">views&nbsp;&nbsp;(blank&nbsp;=&nbsp;off)</span>
   </div>
 
   <div class="section-label-row">Filter videos from:</div>
