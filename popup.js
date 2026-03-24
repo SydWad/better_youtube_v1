@@ -26,6 +26,7 @@ var toggleShorts     = document.getElementById('toggle-shorts');
 var togglePlaylists  = document.getElementById('toggle-playlists');
 var toggleMembers    = document.getElementById('toggle-members');
 var toggleLive       = document.getElementById('toggle-live');
+var toggleAutodub    = document.getElementById('toggle-autodub');
 var filterHome       = document.getElementById('filter-home');
 var filterSubs       = document.getElementById('filter-subs');
 var filterChannel    = document.getElementById('filter-channel');
@@ -131,6 +132,7 @@ function loadSettings() {
     togglePlaylists.checked = !!s.hide_playlists;
     toggleMembers.checked   = !!s.hide_members;
     toggleLive.checked      = !!s.hide_live;
+    toggleAutodub.checked   = !!s.hide_autodub;
 
     filterHome.checked    = s.filter_home    !== false;
     filterSubs.checked    = s.filter_subs    !== false;
@@ -162,6 +164,7 @@ function saveSettings() {
     s.hide_playlists    = togglePlaylists.checked;
     s.hide_members      = toggleMembers.checked;
     s.hide_live         = toggleLive.checked;
+    s.hide_autodub      = toggleAutodub.checked;
     s.filter_home       = filterHome.checked;
     s.filter_subs       = filterSubs.checked;
     s.filter_channel    = filterChannel.checked;
@@ -232,7 +235,7 @@ sliderPW.addEventListener('input', function() { sliderPct.textContent = sliderPW
 
 // ─── Attach save listeners ────────────────────────────────────────────────────
 
-[togglePW, toggleShorts, togglePlaylists, toggleMembers, toggleLive,
+[togglePW, toggleShorts, togglePlaylists, toggleMembers, toggleLive, toggleAutodub,
  filterHome, filterSubs, filterChannel, filterSearch, filterSidebar,
  toggleRWH, toggleDebug, toggleBlacklist].forEach(function(el) {
   el.addEventListener('change', saveSettings);

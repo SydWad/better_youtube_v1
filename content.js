@@ -31,6 +31,7 @@ var ythSettings = {
   hide_playlists:    false,
   hide_members:      false,
   hide_live:         false,
+  hide_autodub:      false,
   filter_home:       true,
   filter_subs:       true,
   filter_channel:    true,
@@ -348,6 +349,14 @@ function ythIsLive(renderer) {
   return false;
 }
 
+function ythIsAutoDub(renderer) {
+  var badges = renderer.querySelectorAll('.yt-badge-shape__text');
+  for (var i = 0; i < badges.length; i++) {
+    if (badges[i].textContent.trim().toLowerCase() === 'auto-dubbed') return true;
+  }
+  return false;
+}
+
 // ─── Hide / unhide ────────────────────────────────────────────────────────────
 
 var ythSessionRemovedCount = 0;
@@ -519,6 +528,11 @@ function ythProcessRenderer(renderer, list) {
   if (ythSettings.hide_live && ythIsShortPlaylistFilteredPage() && ythIsLive(renderer)) {
     ythLog('[YT Hider] hiding live:', ythExtractTitle(renderer));
     ythHide(renderer, 'live'); return;
+  }
+  // Auto-dubbed
+  if (ythSettings.hide_autodub && ythIsShortPlaylistFilteredPage() && ythIsAutoDub(renderer)) {
+    ythLog('[YT Hider] hiding auto-dubbed:', ythExtractTitle(renderer));
+    ythHide(renderer, 'autodub'); return;
   }
 
   // Partially watched — always capture data, hide only on filtered pages
