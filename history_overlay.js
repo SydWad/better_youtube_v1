@@ -93,7 +93,7 @@ function initOverlay() {
   var timerEl    = document.getElementById('__yth_timer');
   var countEl    = document.getElementById('__yth_count');
   var btnRowEl   = document.getElementById('__yth_btn_row');
-  var stallEl    = document.getElementById('__yth_stall');
+  var stallWarning = document.getElementById('__yth_stall');
 
   document.getElementById('__yth_yes').addEventListener('click', startRunning);
   document.getElementById('__yth_later').addEventListener('click', function() {
@@ -134,16 +134,6 @@ function initOverlay() {
   }
 
   // ─── Stall detection ─────────────────────────────────────────────────────────
-  var stallWarning = document.createElement('div');
-  stallWarning.id  = '__yth_stall';
-  stallWarning.style.cssText = 'display:none;margin-top:14px;font-size:14px;color:#882222;';
-  stallWarning.textContent   = 'Page not loading — end of history or network problems?';
-  document.getElementById('__yth_box').appendChild(stallWarning);
-
-  var lastScrollY   = -1;
-  var stallSeconds  = 0;
-  var stallHandle   = null;
-
   function startStallDetector() {
     lastScrollY  = window.scrollY;
     stallSeconds = 0;
@@ -240,19 +230,26 @@ function initOverlay() {
         if (p.tagName && p.tagName.toLowerCase() === 'ytd-rich-item-renderer') return;
         p = p.parentElement;
       }
-      var h3 = el.querySelector('h3.yt-lockup-metadata-view-model__heading-reset');
+      var h3 = el.querySelector(
+        'h3.yt-lockup-metadata-view-model__heading-reset, h3.ytLockupMetadataViewModelHeadingReset'
+      );
       var title = h3 ? h3.getAttribute('title') : null;
       if (!title || scrapedSet.has(title)) return;
       scrapedSet.add(title);
 
       var channel = null;
-      var chLink = el.querySelector('.yt-lockup-metadata-view-model__text-container a[href^="/@"]');
+      var chLink = el.querySelector(
+        '.yt-lockup-metadata-view-model__text-container a[href^="/@"], ' +
+        '.ytLockupMetadataViewModelTextContainer a[href^="/@"]'
+      );
       if (chLink) {
         channel = chLink.textContent.trim();
       } else {
-        var metaRow = el.querySelector('.yt-content-metadata-view-model__metadata-row');
+        var metaRow = el.querySelector(
+          '.yt-content-metadata-view-model__metadata-row, .ytContentMetadataViewModelMetadataRow'
+        );
         if (metaRow) {
-          var span = metaRow.querySelector('span.yt-core-attributed-string');
+          var span = metaRow.querySelector('span.yt-core-attributed-string, span.ytCoreAttributedString');
           if (span) channel = span.textContent.trim();
         }
       }
