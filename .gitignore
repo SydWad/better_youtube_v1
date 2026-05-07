@@ -5,3 +5,4 @@ BYT_ISSUES.md
 .gitignore
 CLAUDE.md
 claude.exe
+*zip
